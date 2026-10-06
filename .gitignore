@@ -59,3 +59,6 @@ Thumbs.db
 # 工具临时输出
 .tmp-tool-results/
 *.tmp.txt
+
+# 官网开发工作目录（正式版在 Web/）
+quicksign-website/
