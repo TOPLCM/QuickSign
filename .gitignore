@@ -1,0 +1,61 @@
+# 依赖和构建
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# 敏感凭证（绝对不提交）
+**/config.json
+**/config.yaml
+**/credentials.yaml
+**/cookies.json
+**/token_cache.json
+**/device_identity.env
+**/device_identity.json
+**/.trae_checkin_state.json
+**/.trae_device_ids.json
+**/trae_sms_accounts.json
+**/*.info
+**/*.key
+**/*.pem
+
+# 接口分析与参考文件（不随仓库发布）
+**/analysis.md
+**/agent_js/
+**/ref_js/
+**/_shots/
+
+# 日志
+**/*.log
+logs/
+
+# 临时文件
+**/qrcode.png
+**/*.tmp
+**/*.bak
+**/signin_page*.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# git 本身
+.git/
+
+# 工具临时输出
+.tmp-tool-results/
+*.tmp.txt
