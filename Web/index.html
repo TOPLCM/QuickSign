@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickSign — 让 AI Agent 帮你完成每日签到</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23E30613'/><text x='50' y='68' font-size='52' font-weight='900' text-anchor='middle' fill='white' font-family='Arial'>Q</text></svg>">
+<style>
+/* ===== 基础重置 ===== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+/* ===== 亮色模式变量（默认） ===== */
+:root{
+  --red:#E30613;
+  --bg:#ffffff;
+  --text:#000000;
+  --bg-inverse:#000000;
+  --text-inverse:#ffffff;
+  --gray-100:#f5f5f5;
+  --gray-200:#e0e0e0;
+  --gray-500:#999999;
+  --gray-700:#555555;
+  --border:rgba(0,0,0,.15);
+  --nav-bg:rgba(255,255,255,.88);
+  --gutter:24px;
+  --max-width:1400px;
+}
+
+/* ===== 暗色变量（手动选择，或系统暗色且未手动选择时生效） ===== */
+[data-theme="dark"]{
+  --bg:#0a0a0a;
+  --text:#f0f0f0;
+  --bg-inverse:#f0f0f0;
+  --text-inverse:#0a0a0a;
+  --gray-100:#1a1a1a;
+  --gray-200:#2a2a2a;
+  --gray-500:#777777;
+  --gray-700:#aaaaaa;
+  --border:rgba(255,255,255,.15);
+  --nav-bg:rgba(10,10,10,.88);
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]){
+    --bg:#0a0a0a;
+    --text:#f0f0f0;
+    --bg-inverse:#f0f0f0;
+    --text-inverse:#0a0a0a;
+    --gray-100:#1a1a1a;
+    --gray-200:#2a2a2a;
+    --gray-500:#777777;
+    --gray-700:#aaaaaa;
+    --border:rgba(255,255,255,.15);
+    --nav-bg:rgba(10,10,10,.88);
+  }
+}
+
+/* ===== 整页吸附（PPT式翻页） ===== */
+html{
+  scroll-snap-type:y mandatory;
+  scroll-behavior:smooth;
+  -webkit-font-smoothing:antialiased;
+  overflow-y:scroll;
+}
+body{
+  font-family:'Helvetica Neue','Helvetica','Arial','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.5;
+  overflow-x:hidden;
+  transition:background .4s ease,color .4s ease;
+}
+::selection{background:var(--red);color:#fff}
+
+/* 每个版面：整屏高度 + 吸附对齐 */
+.snap-section{
+  height:100vh;
+  min-height:100vh;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow:hidden;
+  padding:88px 0 40px;
+}
+
+/* ===== 容器 ===== */
+.container{
+  max-width:var(--max-width);
+  margin:0 auto;
+  padding:0 48px;
+  width:100%;
+}
+
+/* ===== 固定导航 ===== */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--nav-bg);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner{
+  max-width:var(--max-width);margin:0 auto;padding:0 48px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.nav-logo{
+  font-size:18px;font-weight:900;letter-spacing:-.5px;
+  display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);
+}
+.nav-logo-mark{
+  width:26px;height:26px;background:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:15px;font-weight:900;
+}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{
+  text-decoration:none;color:var(--text);font-size:13px;
+  font-weight:500;transition:color .2s;
+}
+.nav-links a:hover,.nav-links a.active{color:var(--red)}
+.nav-gh{
+  display:flex;align-items:center;gap:6px;
+  text-decoration:none;font-size:12px;font-weight:600;
+  padding:7px 14px;border:1.5px solid var(--text);
+  color:var(--text);transition:all .2s;
+}
+.nav-gh:hover{background:var(--text);color:var(--bg)}
+
+/* ===== 明暗模式切换按钮 ===== */
+.nav-actions{display:flex;align-items:center;gap:12px}
+.theme-toggle{
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--text);background:transparent;color:var(--text);
+  cursor:pointer;transition:all .2s;
+}
+.theme-toggle:hover{background:var(--text);color:var(--bg)}
+.theme-toggle svg{width:15px;height:15px}
+/* 亮色显示月亮（点击转暗），暗色显示太阳（点击转亮） */
+.icon-sun{display:none}
+.icon-moon{display:block}
+[data-theme="dark"] .icon-moon{display:none}
+[data-theme="dark"] .icon-sun{display:block}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]) .icon-moon{display:none}
+  :root:not([data-theme]) .icon-sun{display:block}
+}
+
+/* ===== 右侧版面指示器 ===== */
+.page-indicator{
+  position:fixed;right:24px;top:50%;transform:translateY(-50%);
+  z-index:90;display:flex;flex-direction:column;gap:14px;
+}
+.page-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--border);border:1px solid var(--gray-500);
+  cursor:pointer;transition:all .3s;padding:0;
+}
+.page-dot.active{background:var(--red);border-color:var(--red);transform:scale(1.3)}
+
+/* ===== 滚动进度条 ===== */
+.scroll-progress{position:fixed;top:0;left:0;height:2px;background:var(--red);z-index:200;width:0}
+
+/* ===== 通用排版 ===== */
+.section-label{
+  font-size:10px;font-weight:700;letter-spacing:3px;
+  text-transform:uppercase;color:var(--red);
+  margin-bottom:14px;display:flex;align-items:center;gap:10px;
+}
+.section-label::before{content:'';width:28px;height:2px;background:var(--red)}
+.section-title{
+  font-size:clamp(32px,4.5vw,60px);font-weight:900;
+  line-height:1.05;letter-spacing:-.02em;margin-bottom:36px;
+  text-wrap:balance;
+}
+
+/* ===== Hero ===== */
+.hero{justify-content:center}
+/* 标题独占一行，下方信息块，避免任何窗口尺寸下大字压小字 */
+.hero-grid{display:flex;flex-direction:column}
+.hero-title{
+  font-size:clamp(40px,12.5vw,184px);
+  font-weight:900;line-height:.88;letter-spacing:-.04em;
+  text-transform:uppercase;text-wrap:balance;
+  margin-bottom:40px;white-space:nowrap;
+}
+.hero-title .accent{color:var(--red)}
+.hero-info{
+  display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gutter);
+  border-top:2px solid var(--text);padding-top:24px;
+}
+.hero-meta{grid-column:1/8}
+.hero-meta-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-500);margin-bottom:10px}
+.hero-meta-text{font-size:14px;line-height:1.7;color:var(--gray-700);text-wrap:pretty;max-width:640px}
+.hero-footer{position:absolute;bottom:32px;left:0;right:0}
+.hero-footer-inner{max-width:var(--max-width);margin:0 auto;padding:0 48px;display:flex;justify-content:space-between;align-items:flex-end}
+.hero-subtitle{font-size:clamp(16px,2vw,26px);font-weight:300;max-width:560px;line-height:1.4;text-wrap:pretty}
+.hero-hint{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gray-500)}
+.hero-hint-line{width:1px;height:32px;background:var(--text);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scaleY(1);transform-origin:top}50%{transform:scaleY(.35);transform-origin:top}}
+
+/* ===== 理念三栏（无竖线，间距分隔） ===== */
+.principles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:56px;border-top:2px solid var(--text)}
+.principle{padding:36px 0;transition:background .3s}
+.principle-num{font-size:13px;font-weight:700;color:var(--red);margin-bottom:18px}
+.principle-title{font-size:20px;font-weight:700;margin-bottom:12px;line-height:1.25;text-wrap:balance}
+.principle-desc{font-size:13px;line-height:1.75;color:var(--gray-700);text-wrap:pretty}
+
+/* ===== 平台列表 ===== */
+.platform-list{border-top:2px solid var(--text)}
+.platform-row{
+  display:grid;grid-template-columns:48px 1.3fr 1.4fr 1.2fr 80px;
+  gap:16px;align-items:center;
+  padding:16px 0;border-bottom:1px solid var(--border);
+  transition:background .3s,padding-left .3s;
+}
+.platform-row:hover{background:var(--gray-100);padding-left:12px}
+.platform-num{font-size:12px;font-weight:700;color:var(--gray-500)}
+.platform-name{font-size:18px;font-weight:700}
+.platform-name a{color:var(--text);text-decoration:none;transition:color .2s}
+.platform-row:hover .platform-name a{color:var(--red)}
+.platform-url{font-size:12px;color:var(--gray-500);font-family:'Courier New',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.platform-method{font-size:12px;color:var(--gray-700)}
+.platform-status{text-align:right;font-size:11px;font-weight:700}
+.status-ok{color:var(--text)}
+.status-warn{color:var(--red)}
+
+/* ===== 使用方式（反色区） ===== */
+.usage{background:var(--bg-inverse);color:var(--text-inverse)}
+.usage .section-label{color:var(--red)}
+.usage .section-label::before{background:var(--red)}
+.usage .section-title{color:var(--text-inverse)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(128,128,128,.3)}
+.step{padding:36px 28px 36px 0;border-right:1px solid rgba(128,128,128,.2)}
+.step:last-child{border-right:none;padding-right:0}
+.step-num{font-size:56px;font-weight:900;color:var(--red);line-height:1;margin-bottom:18px}
+.step-title{font-size:19px;font-weight:700;margin-bottom:12px;text-wrap:balance}
+.step-desc{font-size:13px;line-height:1.75;opacity:.65;text-wrap:pretty}
+
+/* ===== 开源双卡 ===== */
+.opensource-grid{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--text)}
+.opensource-card{padding:44px 40px;border-right:2px solid var(--text);transition:background .3s;text-decoration:none;color:var(--text);display:block}
+.opensource-card:last-child{border-right:none}
+.opensource-card:hover{background:var(--text);color:var(--bg)}
+.opensource-card:hover .os-url{color:var(--bg);opacity:.5}
+.opensource-card:hover .os-desc{color:var(--bg);opacity:.7}
+.os-icon{width:40px;height:40px;margin-bottom:24px}
+.os-icon svg{width:100%;height:100%}
+.os-name{font-size:26px;font-weight:900;margin-bottom:6px}
+.os-url{font-size:12px;color:var(--gray-500);font-family:'Courier New',monospace;margin-bottom:18px;transition:opacity .3s}
+.os-desc{font-size:13px;line-height:1.75;color:var(--gray-700);transition:opacity .3s;text-wrap:pretty}
+.os-arrow{margin-top:24px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.os-arrow::after{content:'→';font-size:18px;transition:transform .3s}
+.opensource-card:hover .os-arrow::after{transform:translateX(6px)}
+
+/* ===== 末页 ===== */
+.final-inner{text-align:center}
+.final-logo{font-size:clamp(48px,9vw,120px);font-weight:900;letter-spacing:-.03em;line-height:1;margin-bottom:20px}
+.final-logo .accent{color:var(--red)}
+.final-desc{font-size:15px;color:var(--gray-700);margin-bottom:36px;text-wrap:balance}
+.final-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.final-link{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border:1.5px solid var(--text);text-decoration:none;color:var(--text);font-size:13px;font-weight:600;transition:all .25s}
+.final-link:hover{background:var(--red);border-color:var(--red);color:#fff}
+.final-copy{position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:11px;color:var(--gray-500);font-family:'Courier New',monospace}
+
+/* ===== 滚动渐入 ===== */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-l{opacity:0;transform:translateX(-40px);transition:opacity .7s ease,transform .7s ease}
+.reveal-l.visible{opacity:1;transform:translateX(0)}
+.reveal-r{opacity:0;transform:translateX(40px);transition:opacity .7s ease,transform .7s ease}
+.reveal-r.visible{opacity:1;transform:translateX(0)}
+
+/* ===== 响应式 ===== */
+@media(max-width:1024px){
+  .container,.nav-inner,.hero-footer-inner{padding-left:32px;padding-right:32px}
+  .hero-title{margin-bottom:28px}
+  .hero-meta{grid-column:1/13}
+  .principles-grid{grid-template-columns:1fr}
+  .principle{border-right:none;border-bottom:1px solid var(--border);padding:28px 0}
+  .platform-row{grid-template-columns:40px 1fr 70px;gap:10px}
+  .platform-url,.platform-method{display:none}
+  .steps{grid-template-columns:1fr}
+  .step{border-right:none;border-bottom:1px solid rgba(128,128,128,.2);padding:28px 0}
+  .opensource-grid{grid-template-columns:1fr}
+  .opensource-card{border-right:none;border-bottom:2px solid var(--text);padding:32px 28px}
+  .nav-links{display:none}
+  .page-indicator{right:12px}
+}
+@media(max-width:640px){
+  .container,.nav-inner,.hero-footer-inner{padding-left:20px;padding-right:20px}
+  .snap-section{padding-top:76px}
+  .platform-name{font-size:16px}
+  .step-num{font-size:44px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;scroll-snap-type:none}
+  .reveal,.reveal-l,.reveal-r{opacity:1;transform:none;transition:none}
+  .hero-hint-line{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="scroll-progress" id="progress"></div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#page-0" class="nav-logo"><span class="nav-logo-mark">Q</span>QuickSign</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#page-1">理念</a></li>
+      <li><a href="#page-2">平台</a></li>
+      <li><a href="#page-3">使用</a></li>
+      <li><a href="#page-4">开源</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="切换明暗模式" title="切换明暗模式">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <a href="https://github.com/TOPLCM/QuickSign" target="_blank" rel="noopener" class="nav-gh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.44 9.8 8.21 11.39.6.1.82-.26.82-.57 0-.29-.02-1.23-.02-2.24-3.02.56-3.8-.73-4.04-1.41-.13-.34-.72-1.41-1.23-1.7-.42-.22-1.02-.78-.01-.8.94-.01 1.62.87 1.84 1.23 1.08 1.82 2.8 1.31 3.49.99.11-.78.42-1.3.77-1.6-2.67-.3-5.47-1.34-5.47-5.93 0-1.3.47-2.38 1.23-3.22-.12-.3-.54-1.53.12-3.18 0 0 1-.32 3.3 1.23.96-.27 1.98-.4 3-.4s2.04.13 3 .4c2.3-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.76.84 1.23 1.9 1.23 3.22 0 4.6-2.8 5.63-5.48 5.93.44.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.3 0 .31.23.69.83.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-indicator" id="indicator"></div>
+
+<!-- 第0页 Hero -->
+<section class="snap-section hero" id="page-0">
+  <div class="container">
+    <div class="hero-grid">
+      <h1 class="hero-title">Quick<span class="accent">Sign</span></h1>
+      <div class="hero-info">
+        <div class="hero-meta">
+          <div class="hero-meta-label">v1.0 · 2026</div>
+          <p class="hero-meta-text">挂载在豆包、千问、OpenClaw 等 AI Agent 的定时任务上，自动完成每日签到。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-footer">
+    <div class="hero-footer-inner">
+      <p class="hero-subtitle">7 个平台 · 直连优先 · 浏览器兜底 · 长期可用</p>
+      <div class="hero-hint"><span>滚动翻页</span><div class="hero-hint-line"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 第1页 理念 -->
+<section class="snap-section" id="page-1">
+  <div class="container">
+    <div class="section-label reveal">设计理念</div>
+    <h2 class="section-title reveal">为什么选择 QuickSign</h2>
+    <div class="principles-grid">
+      <div class="principle reveal">
+        <div class="principle-num">01</div>
+        <h3 class="principle-title">直连优先</h3>
+        <p class="principle-desc">优先采用最稳定的方式完成签到，速度快、占用资源少。每个平台都持续适配维护，确保长期可用。</p>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">02</div>
+        <h3 class="principle-title">浏览器兜底</h3>
+        <p class="principle-desc">第一种方式不可用时，自动切换浏览器完成签到。遇到滑块、验证码等场景可随时人工协助，保证每日签到不中断。</p>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">03</div>
+        <h3 class="principle-title">凭证本地化</h3>
+        <p class="principle-desc">账号密码等信息只保存在你自己的设备上，不会写入代码、不会上传，日志中也不会出现完整凭证，安全可控。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 第2页 平台 -->
+<section class="snap-section" id="page-2">
+  <div class="container">
+    <div class="section-label reveal">支持平台</div>
+    <h2 class="section-title reveal">7 个平台，持续扩展中</h2>
+    <div class="platform-list">
+      <div class="platform-row reveal">
+        <div class="platform-num">01</div>
+        <div class="platform-name"><a href="https://www.xianyudanji.gg/" target="_blank" rel="noopener">咸鱼单机</a></div>
+        <div class="platform-url">xianyudanji.gg</div>
+        <div class="platform-method">账号密码 + 滑块</div>
+        <div class="platform-status status-ok">稳定</div>
+      </div>
+      <div class="platform-row reveal">
+        <div class="platform-num">02</div>
+        <div class="platform-name"><a href="https://ys.mihoyo.com/cloud/" target="_blank" rel="noopener">云原神</a></div>
+        <div class="platform-url">ys.mihoyo.com/cloud</div>
+        <div class="platform-method">账号密码 + 验证码</div>
+        <div class="platform-status status-ok">稳定</div>
+      </div>
+      <div class="platform-row reveal">
+        <div class="platform-num">03</div>
+        <div class="platform-name"><a href="https://www.trae.cn/" target="_blank" rel="noopener">TRAE</a></div>
+        <div class="platform-url">trae.cn</div>
+        <div class="platform-method">网页授权 · Token 自动续期</div>
+        <div class="platform-status status-ok">长期</div>
+      </div>
+      <div class="platform-row reveal">
+        <div class="platform-num">04</div>
+        <div class="platform-name"><a href="https://www.workbuddy.cn/" target="_blank" rel="noopener">WorkBuddy</a></div>
+        <div class="platform-url">workbuddy.cn</div>
+        <div class="platform-method">微信扫码 · Token 自动续期</div>
+        <div class="platform-status status-ok">长期</div>
+      </div>
+      <div class="platform-row reveal">
+        <div class="platform-num">05</div>
+        <div class="platform-name"><a href="https://agent.minimax.cn/" target="_blank" rel="noopener">MiniMax Agent</a></div>
+        <div class="platform-url">agent.minimax.cn</div>
+        <div class="platform-method">账号密码 + 滑块 · 浏览器兜底</div>
+        <div class="platform-status status-warn">待完善</div>
+      </div>
+      <div class="platform-row reveal">
+        <div class="platform-num">06</div>
+        <div class="platform-name"><a href="https://www.right.com.cn/" target="_blank" rel="noopener">恩山论坛</a></div>
+        <div class="platform-url">right.com.cn</div>
+        <div class="platform-method">账号密码 · Discuz! X3.5</div>
+        <div class="platform-status status-ok">稳定</div>
+      </div>
+      <div class="platform-row reveal">
+        <div class="platform-num">07</div>
+        <div class="platform-name"><a href="https://bbs.mihoyo.com/ys/" target="_blank" rel="noopener">原神（米游社）</a></div>
+        <div class="platform-url">bbs.mihoyo.com/ys</div>
+        <div class="platform-method">APP 扫码 · 基于 MiyoQian</div>
+        <div class="platform-status status-ok">稳定</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 第3页 使用方式 -->
+<section class="snap-section usage" id="page-3">
+  <div class="container">
+    <div class="section-label reveal">使用方式</div>
+    <h2 class="section-title reveal">三步完成每日自动签到</h2>
+    <div class="steps">
+      <div class="step reveal-l">
+        <div class="step-num">01</div>
+        <h3 class="step-title">告诉 AI</h3>
+        <p class="step-desc">对 AI 说"帮我搭建 XX 平台的每日自动签到"。AI 会读取对应方案，引导你完成首次登录配置。</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <h3 class="step-title">完成登录</h3>
+        <p class="step-desc">根据平台不同，提供账号密码、扫码或验证码即可。遇到滑块验证时 AI 会请求你协助，登录态自动保存到本地。</p>
+      </div>
+      <div class="step reveal-r">
+        <div class="step-num">03</div>
+        <h3 class="step-title">自动执行</h3>
+        <p class="step-desc">AI 创建每日定时任务（默认 10:30），之后每天自动执行签到。登录态过期时 AI 会通知你重新登录。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 第4页 开源 -->
+<section class="snap-section" id="page-4">
+  <div class="container">
+    <div class="section-label reveal">开源</div>
+    <h2 class="section-title reveal">MIT License，完全开源</h2>
+    <div class="opensource-grid">
+      <a href="https://github.com/TOPLCM/QuickSign" target="_blank" rel="noopener" class="opensource-card reveal-l">
+        <div class="os-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.44 9.8 8.21 11.39.6.1.82-.26.82-.57 0-.29-.02-1.23-.02-2.24-3.02.56-3.8-.73-4.04-1.41-.13-.34-.72-1.41-1.23-1.7-.42-.22-1.02-.78-.01-.8.94-.01 1.62.87 1.84 1.23 1.08 1.82 2.8 1.31 3.49.99.11-.78.42-1.3.77-1.6-2.67-.3-5.47-1.34-5.47-5.93 0-1.3.47-2.38 1.23-3.22-.12-.3-.54-1.53.12-3.18 0 0 1-.32 3.3 1.23.96-.27 1.98-.4 3-.4s2.04.13 3 .4c2.3-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.76.84 1.23 1.9 1.23 3.22 0 4.6-2.8 5.63-5.48 5.93.44.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.3 0 .31.23.69.83.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </div>
+        <div class="os-name">GitHub</div>
+        <div class="os-url">github.com/TOPLCM/QuickSign</div>
+        <p class="os-desc">主仓库。包含完整源码、CI/CD 配置、使用文档。欢迎 Star、Fork、提交 Issue 和 Pull Request。</p>
+        <div class="os-arrow">访问仓库</div>
+      </a>
+      <a href="https://gitee.com/TOPLCM/QuickSign" target="_blank" rel="noopener" class="opensource-card reveal-r">
+        <div class="os-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .637.024.93.071.446 1.023.683 2.094.683 3.19 0 1.31-.405 2.57-1.143 3.62-.738 1.047-1.738 1.832-2.928 2.285.024.19.048.38.048.571 0 1.69-1.357 3.047-3.047 3.047-.524 0-1.024-.143-1.476-.38-.357.452-.905.761-1.548.761-1.071 0-1.929-.857-1.929-1.929 0-.143.024-.286.048-.429-1.381-.262-2.405-1.476-2.405-2.929 0-1.619 1.31-2.929 2.929-2.929.19 0 .38.024.571.048.452-1.167 1.548-2 2.881-2 1.024 0 1.952.5 2.548 1.286.31-.214.69-.31 1.071-.31.333 0 .643.048.952.119z"/></svg>
+        </div>
+        <div class="os-name">Gitee</div>
+        <div class="os-url">gitee.com/TOPLCM/QuickSign</div>
+        <p class="os-desc">国内镜像。与 GitHub 同步更新，国内访问速度更快。同样欢迎 Star、Fork 和参与贡献。</p>
+        <div class="os-arrow">访问仓库</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 第5页 末页 -->
+<section class="snap-section final" id="page-5">
+  <div class="container final-inner">
+    <div class="final-logo reveal">Quick<span class="accent">Sign</span></div>
+    <p class="final-desc reveal">让 AI Agent 帮你完成每日签到 · 7 个平台 · MIT License</p>
+    <div class="final-links reveal">
+      <a href="https://github.com/TOPLCM/QuickSign" target="_blank" rel="noopener" class="final-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.44 9.8 8.21 11.39.6.1.82-.26.82-.57 0-.29-.02-1.23-.02-2.24-3.02.56-3.8-.73-4.04-1.41-.13-.34-.72-1.41-1.23-1.7-.42-.22-1.02-.78-.01-.8.94-.01 1.62.87 1.84 1.23 1.08 1.82 2.8 1.31 3.49.99.11-.78.42-1.3.77-1.6-2.67-.3-5.47-1.34-5.47-5.93 0-1.3.47-2.38 1.23-3.22-.12-.3-.54-1.53.12-3.18 0 0 1-.32 3.3 1.23.96-.27 1.98-.4 3-.4s2.04.13 3 .4c2.3-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.76.84 1.23 1.9 1.23 3.22 0 4.6-2.8 5.63-5.48 5.93.44.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.3 0 .31.23.69.83.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a href="https://gitee.com/TOPLCM/QuickSign" target="_blank" rel="noopener" class="final-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .637.024.93.071.446 1.023.683 2.094.683 3.19 0 1.31-.405 2.57-1.143 3.62-.738 1.047-1.738 1.832-2.928 2.285.024.19.048.38.048.571 0 1.69-1.357 3.047-3.047 3.047-.524 0-1.024-.143-1.476-.38-.357.452-.905.761-1.548.761-1.071 0-1.929-.857-1.929-1.929 0-.143.024-.286.048-.429-1.381-.262-2.405-1.476-2.405-2.929 0-1.619 1.31-2.929 2.929-2.929.19 0 .38.024.571.048.452-1.167 1.548-2 2.881-2 1.024 0 1.952.5 2.548 1.286.31-.214.69-.31 1.071-.31.333 0 .643.048.952.119z"/></svg>
+        Gitee
+      </a>
+    </div>
+    <div class="final-copy">MIT License · 2026 TOPLCM</div>
+  </div>
+</section>
+
+<script>
+(function(){
+  // ===== 明暗模式：初始化（读取本地保存的选择） =====
+  var savedTheme = null;
+  try{ savedTheme = localStorage.getItem('quicksign-theme'); }catch(e){}
+  if(savedTheme === 'dark' || savedTheme === 'light'){
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+  // 当前实际生效的主题：手动选择优先，否则跟随系统
+  function effectiveTheme(){
+    var manual = document.documentElement.getAttribute('data-theme');
+    if(manual === 'dark' || manual === 'light') return manual;
+    return window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+  }
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('quicksign-theme', next); }catch(e){}
+  });
+
+  var sections = document.querySelectorAll('.snap-section');
+  var total = sections.length;
+  var current = 0;
+  var isAnimating = false;
+  var cooldown = 900; // 翻页冷却时间(ms)，防止一次滚轮翻多页
+
+  // ===== 构建右侧指示器 =====
+  var indicator = document.getElementById('indicator');
+  var dots = [];
+  for(var i = 0; i < total; i++){
+    (function(idx){
+      var dot = document.createElement('button');
+      dot.className = 'page-dot' + (idx === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', '第' + (idx+1) + '页');
+      dot.addEventListener('click', function(){ goTo(idx); });
+      indicator.appendChild(dot);
+      dots.push(dot);
+    })(i);
+  }
+
+  // ===== 翻页函数 =====
+  function goTo(index){
+    if(index < 0 || index >= total || index === current || isAnimating) return;
+    isAnimating = true;
+    current = index;
+    sections[index].scrollIntoView({behavior:'smooth'});
+    // 更新指示器
+    dots.forEach(function(d, i){ d.classList.toggle('active', i === index); });
+    // 更新导航高亮
+    updateNavActive(index);
+    setTimeout(function(){ isAnimating = false; }, cooldown);
+  }
+
+  // ===== 滚轮事件：一次滚动翻一页 =====
+  var wheelAccumulator = 0;
+  window.addEventListener('wheel', function(e){
+    if(isAnimating){ e.preventDefault(); return; }
+    wheelAccumulator += e.deltaY;
+    // 阈值触发翻页（避免触摸板微小滚动误触发）
+    if(Math.abs(wheelAccumulator) > 50){
+      e.preventDefault();
+      if(wheelAccumulator > 0){
+        goTo(current + 1);
+      } else {
+        goTo(current - 1);
+      }
+      wheelAccumulator = 0;
+    }
+  }, {passive:false});
+
+  // ===== 键盘方向键翻页 =====
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowDown' || e.key === 'PageDown'){ e.preventDefault(); goTo(current + 1); }
+    if(e.key === 'ArrowUp' || e.key === 'PageUp'){ e.preventDefault(); goTo(current - 1); }
+  });
+
+  // ===== 触摸滑动支持 =====
+  var touchStartY = 0;
+  window.addEventListener('touchstart', function(e){ touchStartY = e.touches[0].clientY; }, {passive:true});
+  window.addEventListener('touchend', function(e){
+    if(isAnimating) return;
+    var diff = touchStartY - e.changedTouches[0].clientY;
+    if(Math.abs(diff) > 60){
+      if(diff > 0){ goTo(current + 1); } else { goTo(current - 1); }
+    }
+  }, {passive:true});
+
+  // ===== 滚动同步当前页（处理原生snap/拖动滚动条）=====
+  var scrollTimer;
+  window.addEventListener('scroll', function(){
+    // 进度条
+    var docH = document.documentElement.scrollHeight - window.innerHeight;
+    document.getElementById('progress').style.width = (window.scrollY / docH * 100) + '%';
+    // 同步当前页（冷却结束后）
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function(){
+      if(!isAnimating){
+        var idx = Math.round(window.scrollY / window.innerHeight);
+        if(idx !== current && idx >= 0 && idx < total){
+          current = idx;
+          dots.forEach(function(d, i){ d.classList.toggle('active', i === idx); });
+          updateNavActive(idx);
+        }
+      }
+    }, 150);
+  }, {passive:true});
+
+  // ===== 导航高亮 =====
+  function updateNavActive(index){
+    var links = document.querySelectorAll('#navLinks a');
+    // page-0和page-5没有对应导航项
+    var navMap = {1:0, 2:1, 3:2, 4:3};
+    links.forEach(function(a){ a.classList.remove('active'); });
+    if(navMap[index] !== undefined && links[navMap[index]]){
+      links[navMap[index]].classList.add('active');
+    }
+  }
+
+  // ===== 导航/锚点点击翻页 =====
+  document.querySelectorAll('a[href^="#page-"]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      var id = this.getAttribute('href').replace('#page-','');
+      goTo(parseInt(id, 10));
+    });
+  });
+
+  // ===== IntersectionObserver 渐入动画 =====
+  var revealEls = document.querySelectorAll('.reveal, .reveal-l, .reveal-r');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        // 同组元素错开
+        var parent = entry.target.parentElement;
+        var siblings = parent ? Array.prototype.filter.call(parent.children, function(c){
+          return c.classList && (c.classList.contains('reveal') || c.classList.contains('reveal-l') || c.classList.contains('reveal-r'));
+        }) : [];
+        var delay = Array.prototype.indexOf.call(siblings, entry.target) * 120;
+        setTimeout(function(){ entry.target.classList.add('visible'); }, Math.max(0, delay));
+        io.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.15});
+  revealEls.forEach(function(el){ io.observe(el); });
+})();
+</script>
+</body>
+</html>
