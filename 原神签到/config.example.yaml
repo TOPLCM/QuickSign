@@ -1,0 +1,100 @@
+# -*- coding: utf-8 -*-
+# 米游签配置文件。复制为 config.yaml 后填写或用 `python main.py login` 扫码写入。
+
+enable: true
+
+accounts:
+  []
+# 账号凭据（cookie、stoken、云游戏 tokens 等）存储在 data/credentials.yaml 中
+
+storage:
+  data_dir: data
+  credentials_file: credentials.yaml
+  log_dir: logs
+  log_file: miyouqian.log
+
+device:
+  id: ""
+  fp: ""
+  name: ""
+  model: ""
+  presets:
+    - name: "Xiaomi 14"
+      model: "23127PN0CC"
+    - name: "Xiaomi 13"
+      model: "2211133C"
+    - name: "Redmi K70"
+      model: "2311DRK48C"
+    - name: "OnePlus 12"
+      model: "PJD110"
+    - name: "vivo X100"
+      model: "V2309A"
+
+features:
+  game_checkin: true
+  cloud_game_checkin: false
+  bbs_tasks: false
+
+captcha:
+  max_retries: 3
+  channels:
+    - provider: damagou
+      enable: false
+      userkey: ""   # 打码狗 userkey
+      timeout: 60
+
+schedule:
+  enable: false
+  time: "09:00"
+  jitter_minutes: 45
+  run_on_start: false
+
+web:
+  host: "127.0.0.1"   # 监听地址，默认仅本机访问；设为 "0.0.0.0" 允许外网访问
+  port: 5890          # 监听端口
+  password: ""        # Web 控制台访问密码；监听外网时必须认证
+                      # 留空表示未设置，首次访问通过页面设置（至少 8 位）；密码哈希会自动保存到此字段
+
+games:
+  enabled:
+    - genshin
+    - starrail
+    - zzz
+  black_list:
+    genshin: []
+    starrail: []
+    zzz: []
+
+cloud_games:
+  enabled:
+    - genshin
+    - zzz
+
+bbs:
+  forums:
+    - 5
+    - 2
+  checkin: true
+  read: true
+  like: true
+  share: true
+  cancel_like: true
+  post_limit: 5
+  delay_seconds:
+    - 1
+    - 3
+
+push:
+  error_only: false
+  channels:
+    - provider: pushplus
+      enable: false
+      token: ""
+      topic: ""
+
+shop_exchange:
+  enable: true
+  retry_seconds: 20
+  retry_interval: 0.4
+  push: true          # 是否发送兑换结果推送
+  plans: []
