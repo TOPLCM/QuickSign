@@ -5,33 +5,26 @@
 
 - 签到奖励：7天周期，第1-3/5-6天 800+400积分，第4/7天 2000+1000积分
 - 执行时间：每天 10:30
+- 方案：Playwright 无头浏览器（直连因签名算法未破解已移除）
 
 ## 文件结构
 ```
 MiniMax签到/
 ├── config.json           # 登录态配置（token，权限600，不提交）
-├── signin_direct.py      # 直连签到脚本（API需签名，暂不可用）
-├── signin_playwright.py  # Playwright 无头浏览器签到（当前主用方案）
-├── run_checkin.sh        # 签到运行入口（直连优先→Playwright兜底）
+├── signin_playwright.py  # Playwright 无头浏览器签到主脚本
+├── run_checkin.sh        # 签到运行入口
 ├── browser_fallback.md   # Playwright 方案说明文档
 ├── README.md             # 本文件
 └── signin.log            # 签到日志（自动生成，不提交）
 ```
 
-## 双方案说明
+## 方案说明：Playwright 无头浏览器
 
-### 方案一：直连（暂不可用）
-- `GET /minimax-cloud/api/v1/signin/status` — 查询签到状态
-- `POST /minimax-cloud/api/v1/signin/claim` — 领取签到积分
-- **限制**：所有 API 请求均需要签名（invalid signature），签名算法未破解
-- 保留此脚本用于未来签名算法破解后切换
-
-### 方案二：Playwright 无头浏览器（当前主用）
 - 用 `_token`（JWT）作为 Cookie 注入浏览器，免登录打开页面
 - 未签到时，签到面板会在页面加载后自动出现在左下角头像旁
 - 直接点击「签到得XXX」按钮完成签到
 - 已签到时面板不出现，脚本自动判断为「今日已签到」
-- 不依赖签名逆向，不依赖云端浏览器（computer_use_tool），稳定可靠
+- 不依赖签名逆向，不依赖云端浏览器，稳定可靠
 - 依赖：Python `playwright` 包 + Chromium 浏览器
 
 ## 使用方法
@@ -56,7 +49,7 @@ cat signin.log
 ## 定时任务
 - 任务名：「MiniMax每日自动签到」
 - 执行时间：每天 10:30
-- 执行逻辑：运行 `run_checkin.sh` → 直连失败后自动切换 Playwright → 记录日志 → 汇报结果
+- 执行逻辑：运行 `run_checkin.sh` → Playwright 签到 → 记录日志 → 汇报结果
 
 ## 安全提醒
 - `config.json` 包含 token，权限已设为 600，不提交到 Git
