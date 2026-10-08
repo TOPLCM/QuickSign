@@ -53,7 +53,7 @@ jobs:
       - name: 检查敏感文件是否被提交
         run: |
           echo "=== 敏感文件检查 ==="
-          SENSITIVE=$(git ls-files | grep -E "config\.(json|yaml)|credentials|cookies|token_cache|\.key$|\.pem$" || true)
+          SENSITIVE=$(git ls-files | grep -vE "\.py$" | grep -E "config\.(json|yaml|yml)|credentials|cookies\.(json|txt)|token_cache|\.key$|\.pem$|\.env$" || true)
           if [ -n "$SENSITIVE" ]; then
             echo "❌ 发现敏感文件被跟踪:"
             echo "$SENSITIVE"
