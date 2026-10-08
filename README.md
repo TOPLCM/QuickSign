@@ -10,7 +10,7 @@
 | 云原神 | [ys.mihoyo.com/cloud](https://ys.mihoyo.com/cloud/) | 账号密码+验证码 | ✅ | ✅ | 约30天 |
 | TRAE | [trae.cn](https://www.trae.cn/) | 网页授权 | ✅ | - | **长期**（token自动续期） |
 | WorkBuddy | [workbuddy.cn](https://www.workbuddy.cn/) | 微信扫码 | ✅ | - | **长期**（token自动续期） |
-| MiniMax Agent | [agent.minimax.cn](https://agent.minimax.cn/) | 账号密码+滑块 | ❌ | ✅ | 约40天 |
+| MiniMax Agent | [agent.minimax.cn](https://agent.minimax.cn/) | 账号密码+滑块 | - | ✅ | 约40天 |
 | 恩山论坛 | [right.com.cn](https://www.right.com.cn/) | 账号密码 | ✅ | ✅ | 约30天 |
 | 原神（米游社） | [bbs.mihoyo.com/ys](https://bbs.mihoyo.com/ys/) | APP扫码 | ✅ | - | 约15-30天 |
 
