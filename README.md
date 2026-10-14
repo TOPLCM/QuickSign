@@ -7,12 +7,15 @@
 | 平台 | 网址 | 登录方式 | 直连 | 浏览器兜底 | 持久化 |
 |---|---|---|---|---|---|
 | 咸鱼单机 | [xianyudanji.gg](https://www.xianyudanji.gg/) | 账号密码+滑块 | ✅ | ✅ | 约30天 |
-| 云原神 | [ys.mihoyo.com/cloud](https://ys.mihoyo.com/cloud/) | 账号密码+验证码 | ✅ | ✅ | 约30天 |
+| 云原神 | [ys.mihoyo.com/cloud](https://ys.mihoyo.com/cloud/) | 账号密码+验证码 | ✅ | ✅ | 约15-30天 |
 | TRAE | [trae.cn](https://www.trae.cn/) | 网页授权 | ✅ | - | **长期**（token自动续期） |
 | WorkBuddy | [workbuddy.cn](https://www.workbuddy.cn/) | 微信扫码 | ✅ | - | **长期**（token自动续期） |
 | MiniMax Agent | [agent.minimax.cn](https://agent.minimax.cn/) | 账号密码+滑块 | - | ✅ | 约40天 |
 | 恩山论坛 | [right.com.cn](https://www.right.com.cn/) | 账号密码 | ✅ | ✅ | 约30天 |
 | 原神（米游社） | [bbs.mihoyo.com/ys](https://bbs.mihoyo.com/ys/) | APP扫码 | ✅ | - | 约15-30天 |
+| 皎月连内网穿透 | [natpierce.cn](https://www.natpierce.cn/) | 账号密码+网易易盾验证码 | ✅ | ✅ | 每次登录 |
+| 简云IDC | [jianidc.com](https://www.jianidc.com/) | 邮箱密码 | ✅ | ✅ | 每次登录 |
+| 广西职业院校学生岗位实习 | - | 账号密码+虚拟定位 | ✅ | ✅ | 每次登录 |
 
 ## 快速开始（3步）
 
@@ -22,7 +25,7 @@
 ### 第2步：完成首次登录
 根据平台不同，登录方式分为三类：
 
-- **账号密码登录**（咸鱼单机/云原神/恩山论坛/MiniMax）：告诉 AI 账号和密码即可，遇到滑块/验证码 AI 会请你协助
+- **账号密码登录**（咸鱼单机/云原神/恩山论坛/MiniMax/皎月连/简云/岗位实习）：告诉 AI 账号和密码即可，遇到滑块/验证码 AI 会请你协助
 - **扫码登录**（WorkBuddy/原神）：AI 生成二维码，用对应 APP 扫码即可
 - **网页授权登录**（TRAE）：AI 打开授权页，你在浏览器中登录授权
 
@@ -35,9 +38,12 @@
 - **TRAE**、**WorkBuddy**：token 自动续期，登录态稳定
 
 ### 需要定期重新登录（约每月一次）
-- **咸鱼单机**、**云原神**、**恩山论坛**：Cookie 约 30 天
+- **咸鱼单机**、**云原神**、**恩山论坛**：Cookie 约 15-30 天
 - **MiniMax**：token 约 40 天
 - **原神**：stoken 约 15-30 天
+
+### 每次运行重新登录
+- **皎月连**、**简云**、**岗位实习**：每次运行都重新登录，无需保存登录态
 
 登录态过期时，AI 会通知你，说一声"重新登录 XX 平台"即可。
 
@@ -57,6 +63,9 @@ QuickSign/
 ├── MiniMax签到/
 ├── 恩山论坛签到/
 ├── 原神签到/
+├── 皎月连签到/
+├── 简云签到/
+├── 广西职业院校学生岗位实习签到/
 ├── .github/workflows/ci.yml  # 自动代码检查
 ├── licenses/              # 用到的开源项目许可证
 ├── LICENSE                # 本项目 MIT 许可证
