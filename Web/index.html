@@ -82,7 +82,7 @@ body{
   flex-direction:column;
   justify-content:center;
   overflow:hidden;
-  padding:88px 0 40px;
+  padding:72px 0 32px;
 }
 
 /* ===== 容器 ===== */
@@ -167,12 +167,12 @@ body{
 .section-label{
   font-size:10px;font-weight:700;letter-spacing:3px;
   text-transform:uppercase;color:var(--red);
-  margin-bottom:14px;display:flex;align-items:center;gap:10px;
+  margin-bottom:10px;display:flex;align-items:center;gap:10px;
 }
 .section-label::before{content:'';width:28px;height:2px;background:var(--red)}
 .section-title{
-  font-size:clamp(32px,4.5vw,60px);font-weight:900;
-  line-height:1.05;letter-spacing:-.02em;margin-bottom:36px;
+  font-size:clamp(28px,4vw,52px);font-weight:900;
+  line-height:1.05;letter-spacing:-.02em;margin-bottom:24px;
   text-wrap:balance;
 }
 
@@ -213,12 +213,12 @@ body{
 .platform-row{
   display:grid;grid-template-columns:48px 1.3fr 1.4fr 1.2fr 80px;
   gap:16px;align-items:center;
-  padding:16px 0;border-bottom:1px solid var(--border);
+  padding:11px 0;border-bottom:1px solid var(--border);
   transition:background .3s,padding-left .3s;
 }
 .platform-row:hover{background:var(--gray-100);padding-left:12px}
 .platform-num{font-size:12px;font-weight:700;color:var(--gray-500)}
-.platform-name{font-size:18px;font-weight:700}
+.platform-name{font-size:17px;font-weight:700}
 .platform-name a{color:var(--text);text-decoration:none;transition:color .2s}
 .platform-row:hover .platform-name a{color:var(--red)}
 .platform-url{font-size:12px;color:var(--gray-500);font-family:'Courier New',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
