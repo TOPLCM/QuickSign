@@ -54,9 +54,8 @@
   }
 }
 
-/* ===== 整页吸附（PPT式翻页） ===== */
+/* ===== 整页翻页（JS控制，禁用原生scroll-snap避免冲突） ===== */
 html{
-  scroll-snap-type:y mandatory;
   scroll-behavior:smooth;
   -webkit-font-smoothing:antialiased;
   overflow-y:scroll;
@@ -551,7 +550,9 @@ body{
   var total = sections.length;
   var current = 0;
   var isAnimating = false;
-  var cooldown = 900; // 翻页冷却时间(ms)，防止一次滚轮翻多页
+  var cooldown = 800; // 翻页冷却时间(ms)，防止一次滚轮翻多页
+  var wheelAccumulator = 0;
+  var WHEEL_THRESHOLD = 60; // 滚轮累计阈值(px)
 
   // ===== 构建右侧指示器 =====
   var indicator = document.getElementById('indicator');
@@ -572,6 +573,7 @@ body{
     if(index < 0 || index >= total || index === current || isAnimating) return;
     isAnimating = true;
     current = index;
+    wheelAccumulator = 0; // 重置累计器
     sections[index].scrollIntoView({behavior:'smooth'});
     // 更新指示器
     dots.forEach(function(d, i){ d.classList.toggle('active', i === index); });
@@ -580,11 +582,37 @@ body{
     setTimeout(function(){ isAnimating = false; }, cooldown);
   }
 
+  // ===== 滚轮事件：JS控制翻页（禁用原生scroll-snap，避免冲突） =====
+  window.addEventListener('wheel', function(e){
+    e.preventDefault(); // 阻止默认滚动，完全由JS控制
+    if(isAnimating) return;
+    wheelAccumulator += e.deltaY;
+    // 阈值触发翻页
+    if(Math.abs(wheelAccumulator) > WHEEL_THRESHOLD){
+      if(wheelAccumulator > 0){
+        goTo(current + 1);
+      } else {
+        goTo(current - 1);
+      }
+    }
+  }, {passive:false});
+
   // ===== 键盘方向键翻页 =====
   window.addEventListener('keydown', function(e){
     if(e.key === 'ArrowDown' || e.key === 'PageDown'){ e.preventDefault(); goTo(current + 1); }
     if(e.key === 'ArrowUp' || e.key === 'PageUp'){ e.preventDefault(); goTo(current - 1); }
   });
+
+  // ===== 触摸滑动支持 =====
+  var touchStartY = 0;
+  window.addEventListener('touchstart', function(e){ touchStartY = e.touches[0].clientY; }, {passive:true});
+  window.addEventListener('touchend', function(e){
+    if(isAnimating) return;
+    var diff = touchStartY - e.changedTouches[0].clientY;
+    if(Math.abs(diff) > 60){
+      if(diff > 0){ goTo(current + 1); } else { goTo(current - 1); }
+    }
+  }, {passive:true});
 
   // ===== 滚动同步当前页（处理原生snap/拖动滚动条）=====
   var scrollTimer;
