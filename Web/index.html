@@ -226,16 +226,14 @@ body{
 .status-ok{color:var(--text)}
 .status-warn{color:var(--red)}
 
-/* ===== 使用方式（反色区） ===== */
-.usage{background:var(--bg-inverse);color:var(--text-inverse)}
+/* ===== 使用方式 ===== */
 .usage .section-label{color:var(--red)}
 .usage .section-label::before{background:var(--red)}
-.usage .section-title{color:var(--text-inverse)}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;border-top:1px solid rgba(128,128,128,.3)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;border-top:2px solid var(--text)}
 .step{padding:36px 0}
 .step-num{font-size:56px;font-weight:900;color:var(--red);line-height:1;margin-bottom:18px}
 .step-title{font-size:19px;font-weight:700;margin-bottom:12px;text-wrap:balance}
-.step-desc{font-size:13px;line-height:1.75;opacity:.65;text-wrap:pretty}
+.step-desc{font-size:13px;line-height:1.75;color:var(--gray-700);text-wrap:pretty}
 
 /* ===== 开源双卡 ===== */
 .opensource-grid{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--text)}
@@ -281,7 +279,7 @@ body{
   .platform-row{grid-template-columns:40px 1fr 70px;gap:10px}
   .platform-url,.platform-method{display:none}
   .steps{grid-template-columns:1fr}
-  .step{border-right:none;border-bottom:1px solid rgba(128,128,128,.2);padding:28px 0}
+  .step{border-right:none;border-bottom:1px solid var(--border);padding:28px 0}
   .opensource-grid{grid-template-columns:1fr}
   .opensource-card{border-right:none;border-bottom:2px solid var(--text);padding:32px 28px}
   .nav-links{display:none}
